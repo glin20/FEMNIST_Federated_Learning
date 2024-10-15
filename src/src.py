@@ -62,17 +62,15 @@ def load_datasets(partition_id: int):
 
 def poison(batch_labels):
     labels = []
-    count = 0
     for label in batch_labels:
-        if count % 2 == 0:
-            labels.append((label.item() + 5) % 9)
+        if label.item() in [0, 1, 2, 3, 4]:
+            labels.append((label.item() + 1) % 5)
         else:
             labels.append(label.item())
-        count += 1
     return torch.tensor(labels).to(DEVICE)
 
 
-def train(net, trainloader, partition_id, epochs: int, poison):
+def train(net, trainloader, partition_id, epochs: int, poisoned):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters())
@@ -81,7 +79,7 @@ def train(net, trainloader, partition_id, epochs: int, poison):
         for batch in trainloader:
             images, labels = batch["image"].to(
                 DEVICE), batch["label"].to(DEVICE)
-            if partition_id % 4 == 0 and poison:
+            if partition_id % 4 == 0 and poisoned:
                 labels = poison(labels)
             optimizer.zero_grad()
             outputs = net(images)
