@@ -3,7 +3,7 @@ from flwr.common import Context
 from torchvision.models import resnet50, ResNet50_Weights
 from src import train, test, load_datasets, get_parameters, set_parameters, DEVICE
 
-POISONED = True
+POISONED = False
 
 
 class FlowerClient(NumPyClient):
@@ -25,7 +25,7 @@ class FlowerClient(NumPyClient):
     def fit(self, parameters, config):
         set_parameters(self.net, parameters)
         train(self.net, self.trainloader,
-              self.partition_id, epochs=1, poison=POISONED)
+              self.partition_id, epochs=1, poisoned=POISONED)
         return get_parameters(self.net), len(self.trainloader), {}
 
     def evaluate(self, parameters, config):
