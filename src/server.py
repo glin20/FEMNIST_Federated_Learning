@@ -5,6 +5,9 @@ from flwr.server.strategy import FedAvg
 import csv
 
 
+# Calculate the average loss and accuracy metric given by the clients
+# and write them to a csv file
+
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     # Multiply accuracy of each client by number of examples used
     accuracies = [num_examples * m["accuracy"] for num_examples, m in metrics]
@@ -20,6 +23,9 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
 
     return {"accuracy": sum(accuracies) / sum(examples)}
 
+# Server implementation using FedAvg strategy running for
+# default 10 rounds.
+
 
 def server_fn(context: Context) -> ServerAppComponents:
     strategy = FedAvg(
@@ -31,6 +37,7 @@ def server_fn(context: Context) -> ServerAppComponents:
         evaluate_metrics_aggregation_fn=weighted_average,
     )
 
+    # Number of rounds process runs for
     config = ServerConfig(num_rounds=10)
 
     return ServerAppComponents(strategy=strategy, config=config)

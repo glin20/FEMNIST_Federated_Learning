@@ -10,7 +10,8 @@ from datasets.utils.logging import disable_progress_bar
 import flwr
 from datasets import load_dataset
 
-DEVICE = torch.device("cuda")  # Try "cuda" to train on GPU
+# "cuda" to train on GPU and "cpu" to train on CPU
+DEVICE = torch.device("cuda")
 print(f"Training on {DEVICE}")
 print(f"Flower {flwr.__version__} / PyTorch {torch.__version__}")
 disable_progress_bar()
@@ -24,8 +25,15 @@ BATCH_SIZE = 32
 # as FEMNIST is grayscale rather than RGB. Batch keys also changed to match the FEMNIST dataset.
 
 
+# Loads a dataset partition based on the given partition_id. Then divides the
+# partition further to obtain a train and test set. Each set's image is converted
+# into tensors and transforms them to have three channels to fit ResNet50's
+# three channel requirement. Returns a trainloader and testloader based on the
+# train and test sets.
+
+
 def load_datasets(partition_id: int):
-    # Load local FEMNIST subset dataset
+    # Load local FEMNIST subset dataset using each client's partition_id
     dataset_dict = load_dataset(
         "imagefolder", data_dir=f"./femnist_subset/client_{partition_id}")
     dataset = dataset_dict["train"]
@@ -69,9 +77,11 @@ def poison(batch_labels):
             labels.append(label.item())
     return torch.tensor(labels).to(DEVICE)
 
+# Trains the model using the batches from the trainloader.
+# Every 4 clients (in terms of partition_id) will poison data
+
 
 def train(net, trainloader, partition_id, epochs: int, poisoned: bool):
-    """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters())
     net.train()
@@ -87,9 +97,11 @@ def train(net, trainloader, partition_id, epochs: int, poisoned: bool):
             loss.backward()
             optimizer.step()
 
+# Tests the model using the testloader. Every 4 clients
+# (in terms of partition_id) will use poisoned data
+
 
 def test(net, testloader, partition_id, poisoned: bool):
-    """Evaluate the network on the entire test set."""
     criterion = torch.nn.CrossEntropyLoss()
     correct, total, loss = 0, 0, 0.0
     net.eval()
@@ -108,11 +120,15 @@ def test(net, testloader, partition_id, poisoned: bool):
     accuracy = correct / total
     return loss, accuracy
 
+# Set the parameters of the model
+
 
 def set_parameters(net, parameters: List[np.ndarray]):
     params_dict = zip(net.state_dict().keys(), parameters)
     state_dict = OrderedDict({k: torch.Tensor(v) for k, v in params_dict})
     net.load_state_dict(state_dict, strict=True)
+
+# Get the parameters of the model
 
 
 def get_parameters(net) -> List[np.ndarray]:

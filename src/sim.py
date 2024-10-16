@@ -16,6 +16,8 @@ color = ["#828C8D", "#509E32", "#97D341", "#9F7B45", "#0C86FE",
 files = ["client_loss.csv", "client_acc.csv",
          "average_loss.csv", "average_acc.csv"]
 
+# Plots the data found in the files
+
 
 def plot_client_data():
     for f in files:
@@ -41,6 +43,7 @@ def plot_client_data():
                 plt.show()
 
 
+# Remove file to allow for new file to be created
 for f in files:
     if os.path.exists(f):
         os.remove(f)
@@ -51,6 +54,7 @@ backend_config = {"client_resources": {"num_cpus": 1, "num_gpus": 0.0}}
 if DEVICE.type == "cuda":
     backend_config = {"client_resources": {"num_cpus": 1, "num_gpus": 1.0}}
 
+# Run simulation
 run_simulation(
     server_app=server_app,
     client_app=client_app,
@@ -58,4 +62,5 @@ run_simulation(
     backend_config=backend_config,
 )
 
+# Plot data
 plot_client_data()
