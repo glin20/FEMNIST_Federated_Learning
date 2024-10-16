@@ -19,7 +19,7 @@ disable_progress_bar()
 NUM_CLIENTS = 10
 BATCH_SIZE = 32
 
-# Code taken from Flower Framework's Getting Started with Flower
+# Code partly taken from Flower Framework's Getting Started with Flower
 # https://flower.ai/docs/framework/tutorial-series-get-started-with-flower-pytorch.html
 # Edited dataset to be FEMNIST dataset and changed the transforms images to three channels
 # as FEMNIST is grayscale rather than RGB. Batch keys also changed to match the FEMNIST dataset.
