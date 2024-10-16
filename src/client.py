@@ -4,10 +4,8 @@ from torchvision.models import resnet50, ResNet50_Weights
 from src import train, test, load_datasets, get_parameters, set_parameters, DEVICE
 
 # Determines whether the simulation runs with data poisoning
-# 1 = Regular poison, half of partitions shifted up 1 label
-# 2 = Random Poison, half of all labels randomly reassigned
-# 3 = All Threes Poison, partitions 0,1,2,4,5 relabeled to 3
-# Any other number = No Poison
+# Set to True to Poison 3 clients with 50% label flipping
+# Set to False to have all clients have healthy data
 POISONED = False
 
 
