@@ -1,7 +1,6 @@
 from collections import OrderedDict
 from typing import List
 
-import random
 import numpy as np
 import torch
 import torchvision.transforms as transforms
@@ -9,9 +8,7 @@ from torch.utils.data import DataLoader
 from datasets.utils.logging import disable_progress_bar
 
 import flwr
-from flwr_datasets import FederatedDataset
 from datasets import load_dataset
-from flwr_datasets.partitioner import NaturalIdPartitioner
 
 DEVICE = torch.device("cuda")  # Try "cuda" to train on GPU
 print(f"Training on {DEVICE}")
@@ -61,6 +58,8 @@ def load_datasets(partition_id: int):
 
 # Data Poisoning in which the first 5 sets of labels are shifted to the next
 # label with 4 overflowing to 0.
+
+
 def poison(batch_labels):
     labels = []
     for label in batch_labels:
@@ -69,6 +68,7 @@ def poison(batch_labels):
         else:
             labels.append(label.item())
     return torch.tensor(labels).to(DEVICE)
+
 
 def train(net, trainloader, partition_id, epochs: int, poisoned: bool):
     """Train the network on the training set."""

@@ -1,10 +1,8 @@
 from typing import List, Tuple
-from src import DEVICE, load_datasets, set_parameters, test
 from flwr.common import Metrics, Context
 from flwr.server import ServerApp, ServerConfig, ServerAppComponents
 from flwr.server.strategy import FedAvg
-from torchvision.models import resnet50, ResNet50_Weights
-import matplotlib as plt
+import csv
 
 
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
@@ -13,10 +11,12 @@ def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     losses = [num_examples * m["loss"] for num_examples, m in metrics]
     examples = [num_examples for num_examples, _ in metrics]
     # Aggregate and return custom metric (weighted average)
-    with open("average_loss.data", "a") as f_loss:
-        f_loss.write(f"{sum(losses) / sum(examples)}\n")
-    with open("average_acc.data", "a") as f_acc:
-        f_acc.write(f"{sum(accuracies) / sum(examples)}\n")
+    with open("average_loss.csv", "a", newline='') as f_loss:
+        writer = csv.writer(f_loss)
+        writer.writerow([sum(losses) / sum(examples)])
+    with open("average_acc.csv", "a", newline='') as f_acc:
+        writer = csv.writer(f_acc)
+        writer.writerow([sum(accuracies) / sum(examples)])
 
     return {"accuracy": sum(accuracies) / sum(examples)}
 

@@ -2,6 +2,7 @@ from flwr.client import Client, ClientApp, NumPyClient
 from flwr.common import Context
 from torchvision.models import resnet50, ResNet50_Weights
 from src import train, test, load_datasets, get_parameters, set_parameters, DEVICE
+import csv
 
 # Determines whether the simulation runs with data poisoning
 # Set to True to Poison 3 clients with 50% label flipping
@@ -17,10 +18,12 @@ class FlowerClient(NumPyClient):
         self.partition_id = partition_id
 
     def write_data(self, loss, accuracy):
-        with open("client_loss.data", "a") as f_loss:
-            f_loss.write(f"{self.partition_id},{loss}\n")
-        with open("client_acc.data", "a") as f_acc:
-            f_acc.write(f"{self.partition_id},{accuracy}\n")
+        with open("client_loss.csv", "a", newline='') as f_loss:
+            writer = csv.writer(f_loss)
+            writer.writerow([self.partition_id, loss])
+        with open("client_acc.csv", "a", newline='') as f_acc:
+            writer = csv.writer(f_acc)
+            writer.writerow([self.partition_id, accuracy])
 
     def get_parameters(self, config):
         return get_parameters(self.net)
@@ -33,7 +36,8 @@ class FlowerClient(NumPyClient):
 
     def evaluate(self, parameters, config):
         set_parameters(self.net, parameters)
-        loss, accuracy = test(self.net, self.valloader, self.partition_id, poisoned=POISONED)
+        loss, accuracy = test(self.net, self.valloader,
+                              self.partition_id, poisoned=POISONED)
         self.write_data(loss, accuracy)
         return float(loss), len(self.valloader), {"loss": float(loss), "accuracy": float(accuracy)}
 
