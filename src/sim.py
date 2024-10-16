@@ -28,6 +28,7 @@ def plot_client_data():
                     dic[client].append(float(val))
                 for var in dic:
                     plt.plot(dic[var], c=color[int(var)], marker=".")
+                plt.title(f.split(".")[0])
                 plt.savefig(f.split(".")[0])
                 plt.show()
         else:
@@ -36,6 +37,7 @@ def plot_client_data():
                 for line in f_loss:
                     arr.append(float(line))
                 plt.plot(arr, marker=".")
+                plt.title(f.split(".")[0])
                 plt.savefig(f.split(".")[0])
                 plt.show()
 

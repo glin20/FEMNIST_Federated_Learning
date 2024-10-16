@@ -3,6 +3,11 @@ from flwr.common import Context
 from torchvision.models import resnet50, ResNet50_Weights
 from src import train, test, load_datasets, get_parameters, set_parameters, DEVICE
 
+# Determines whether the simulation runs with data poisoning
+# 1 = Regular poison, half of partitions shifted up 1 label
+# 2 = Random Poison, half of all labels randomly reassigned
+# 3 = All Threes Poison, partitions 0,1,2,4,5 relabeled to 3
+# Any other number = No Poison
 POISONED = False
 
 
@@ -30,7 +35,7 @@ class FlowerClient(NumPyClient):
 
     def evaluate(self, parameters, config):
         set_parameters(self.net, parameters)
-        loss, accuracy = test(self.net, self.valloader)
+        loss, accuracy = test(self.net, self.valloader, self.partition_id, poisoned=POISONED)
         self.write_data(loss, accuracy)
         return float(loss), len(self.valloader), {"loss": float(loss), "accuracy": float(accuracy)}
 

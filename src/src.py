@@ -59,7 +59,8 @@ def load_datasets(partition_id: int):
     )
     return trainloader, testloader
 
-
+# Data Poisoning in which the first 5 sets of labels are shifted to the next
+# label with 4 overflowing to 0.
 def poison(batch_labels):
     labels = []
     for label in batch_labels:
@@ -69,8 +70,7 @@ def poison(batch_labels):
             labels.append(label.item())
     return torch.tensor(labels).to(DEVICE)
 
-
-def train(net, trainloader, partition_id, epochs: int, poisoned):
+def train(net, trainloader, partition_id, epochs: int, poisoned: bool):
     """Train the network on the training set."""
     criterion = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(net.parameters())
@@ -88,7 +88,7 @@ def train(net, trainloader, partition_id, epochs: int, poisoned):
             optimizer.step()
 
 
-def test(net, testloader):
+def test(net, testloader, partition_id, poisoned: bool):
     """Evaluate the network on the entire test set."""
     criterion = torch.nn.CrossEntropyLoss()
     correct, total, loss = 0, 0, 0.0
@@ -97,6 +97,8 @@ def test(net, testloader):
         for batch in testloader:
             images, labels = batch["image"].to(
                 DEVICE), batch["label"].to(DEVICE)
+            if partition_id % 4 == 0 and poisoned:
+                labels = poison(labels)
             outputs = net(images)
             loss += criterion(outputs, labels).item()
             _, predicted = torch.max(outputs.data, 1)
