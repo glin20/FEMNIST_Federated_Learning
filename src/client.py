@@ -1,13 +1,13 @@
 from flwr.client import Client, ClientApp, NumPyClient
 from flwr.common import Context
 from torchvision.models import resnet50, ResNet50_Weights
-from src import train, test, load_datasets, get_parameters, set_parameters, DEVICE
+from src import train, test, load_datasets, get_parameters, set_parameters, DEVICE, Net
 import csv
 
 # Determines whether the simulation runs with data poisoning
 # Set to True to Poison 3 clients with 50% label flipping
 # Set to False to have all clients have healthy data
-POISONED = False
+POISONED = True
 
 # Client implementation
 
@@ -66,7 +66,7 @@ class FlowerClient(NumPyClient):
 def client_fn(context: Context) -> Client:
 
     # Load model
-    net = resnet50(weights=ResNet50_Weights.DEFAULT).to(DEVICE)
+    net = Net().to(DEVICE)
 
     # Get partition_id
     partition_id = context.node_config["partition-id"]

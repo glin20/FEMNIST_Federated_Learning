@@ -1,6 +1,8 @@
 from collections import OrderedDict
 from typing import List
 
+import torch.nn.functional as F
+import torch.nn as nn
 import numpy as np
 import torch
 import torchvision.transforms as transforms
@@ -30,6 +32,25 @@ BATCH_SIZE = 32
 # into tensors and transforms them to have three channels to fit ResNet50's
 # three channel requirement. Returns a trainloader and testloader based on the
 # train and test sets.
+
+class Net(nn.Module):
+    def __init__(self) -> None:
+        super(Net, self).__init__()
+        self.conv1 = nn.Conv2d(3, 6, 5)
+        self.pool = nn.MaxPool2d(2, 2)
+        self.conv2 = nn.Conv2d(6, 16, 5)
+        self.fc1 = nn.Linear(256, 120)
+        self.fc2 = nn.Linear(120, 84)
+        self.fc3 = nn.Linear(84, 10)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.pool(F.relu(self.conv1(x)))
+        x = self.pool(F.relu(self.conv2(x)))
+        x = x.view(x.size(0), 256)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
 
 
 def load_datasets(partition_id: int):
