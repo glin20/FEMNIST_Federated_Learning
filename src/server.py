@@ -153,9 +153,7 @@ class FedAvgEdit(FedAvg):
         trusts = []
         for i in range(len(self.reputations)):
             d = 1 - normalized_distances[i]
-            trust = np.sqrt(self.reputations[i]**2 + d ** 2) - \
-                np.sqrt((1.0-self.reputations[i]) ** 2 +
-                        np.sqrt((1.0-d) ** 2))
+            trust = np.sqrt(self.reputations[i]**2 + d ** 2) - np.sqrt((1.0-self.reputations[i]) ** 2 + ((1.0-d) ** 2))
             trust = min(1, max(0, trust))
             trusts.append(trust)
         return trusts
