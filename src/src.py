@@ -53,12 +53,15 @@ class Net(nn.Module):
         return x
 
 
-def load_datasets(partition_id: int):
+def load_datasets(partition_id: int, POISONED=True):
     # Load local FEMNIST subset dataset using each client's partition_id
-    dataset_dict = load_dataset(
-        "imagefolder", data_dir=f"./femnist_subset/client_{partition_id}")
+    if POISONED:
+        dataset_dict = load_dataset(
+            "imagefolder", data_dir=f"./poisoned_subset/client_{partition_id}")
+    else:
+        dataset_dict = load_dataset(
+            "imagefolder", data_dir=f"./femnist_subset/client_{partition_id}")
     dataset = dataset_dict["train"]
-
     # Divide data on each node: 80% train, 20% test
     partition_train_test = dataset.train_test_split(test_size=0.2, seed=42)
 
@@ -110,8 +113,6 @@ def train(net, trainloader, partition_id, epochs: int, poisoned: bool):
         for batch in trainloader:
             images, labels = batch["image"].to(
                 DEVICE), batch["label"].to(DEVICE)
-            if partition_id % 4 == 0 and poisoned:
-                labels = poison(labels)
             optimizer.zero_grad()
             outputs = net(images)
             loss = criterion(outputs, labels)
@@ -130,8 +131,6 @@ def test(net, testloader, partition_id, poisoned: bool):
         for batch in testloader:
             images, labels = batch["image"].to(
                 DEVICE), batch["label"].to(DEVICE)
-            if partition_id % 4 == 0 and poisoned:
-                labels = poison(labels)
             outputs = net(images)
             loss += criterion(outputs, labels).item()
             _, predicted = torch.max(outputs.data, 1)

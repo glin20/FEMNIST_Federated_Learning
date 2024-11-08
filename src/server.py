@@ -137,23 +137,25 @@ class FedAvgEdit(FedAvg):
 
     def get_reputation(self, normalized_distances, server_round):
         for i in range(len(normalized_distances)):
+            d = (1 - normalized_distances[i])
             if server_round == 1:
-                r = (1.0 - normalized_distances[i])
+                r = (1.0 - d)
             else:
-                if normalized_distances[i] < (1.0 - normalized_distances[i]):
-                    r = (self.reputations[i] + normalized_distances[i]) - \
-                        (self.reputations[i] / server_round)
+                if d < (1.0 - d):
+                    r = min(1, max(0, (self.reputations[i] + d) -
+                                   (self.reputations[i] / server_round)))
                 else:
-                    r = (
-                        self.reputations[i] + normalized_distances[i]) - (np.exp(-(1.0 - (normalized_distances[i] * (self.reputations[i] / server_round)))))
+                    r = min(1, max(0, (
+                        self.reputations[i] + d) - (np.exp(-(1.0 - (d * (self.reputations[i] / server_round)))))))
             self.reputations[i] = r
 
     def get_trust(self, normalized_distances):
         trusts = []
         for i in range(len(self.reputations)):
-            trust = np.sqrt(self.reputations[i]**2 + normalized_distances[i] ** 2) - \
+            d = 1 - normalized_distances[i]
+            trust = np.sqrt(self.reputations[i]**2 + d ** 2) - \
                 np.sqrt((1.0-self.reputations[i]) ** 2 +
-                        np.sqrt((1.0-normalized_distances[i]) ** 2))
+                        np.sqrt((1.0-d) ** 2))
             trust = min(1, max(0, trust))
             trusts.append(trust)
         return trusts
@@ -170,6 +172,7 @@ class FedAvgEdit(FedAvg):
         # Do not aggregate if there are failures and failures are not accepted
         if not self.accept_failures and failures:
             return None, {}
+        aggregated_results = aggregate_inplace(results)
 
         weights_results = [
             (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples, client)
@@ -195,7 +198,7 @@ class FedAvgEdit(FedAvg):
             print("TRUST: ", trust_values)
             trusted_clients = []
             for i in range(len(trust_values)):
-                if trust_values[i] > 0.15:
+                if trust_values[i] > 0.2:
                     trusted_clients.append(weights_results[i][:2])
                 else:
                     indexes.append(self.reputations[i])
