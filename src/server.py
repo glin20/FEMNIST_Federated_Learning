@@ -39,6 +39,11 @@ reputation_values = [None] * 10
 # Calculate the average loss and accuracy metric given by the clients
 # and write them to a csv file
 
+#Metaparameters
+#Determines number of rounds of aggregation occur before reputation and trust is applied
+rounds_before_trust = 5
+#Determines threshold trust value for removal from aggregation
+beta = 0.2
 
 class FedAvgEdit(FedAvg):
     def __init__(
@@ -121,12 +126,13 @@ class FedAvgEdit(FedAvg):
 
         kmeans = KMeans(n_clusters=1).fit(flat)
         center = kmeans.cluster_centers_[0]
-
-        return ak.ravel(center)
+        return center
+        # return ak.ravel(center)
 
     def get_normalized_distances(self, center, weights_results):
         distances = []
         for i in range(len(weights_results)):
+            ping = ak.ravel(weights_results[i][0])
             d = np.linalg.norm(
                 center - ak.ravel(weights_results[i][0]))
             distances.append([d])
@@ -135,24 +141,27 @@ class FedAvgEdit(FedAvg):
         normalized_distances = scaler.transform(distances)
         return normalized_distances.flatten()
 
+
     def get_reputation(self, normalized_distances, server_round):
+        # d is set to 1 - normalized_dist as otherwise server will eventually discard all clients for some reason
         for i in range(len(normalized_distances)):
-            d = (1 - normalized_distances[i])
+            d = 1- (normalized_distances[i])
             if server_round == 1:
                 r = (1.0 - d)
             else:
                 if d < (1.0 - d):
-                    r = min(1, max(0, (self.reputations[i] + d) -
-                                   (self.reputations[i] / server_round)))
+                    k = (self.reputations[i] + d) - (self.reputations[i] / server_round)
+                    r = min(1, max(0, k))
                 else:
-                    r = min(1, max(0, (
-                        self.reputations[i] + d) - (np.exp(-(1.0 - (d * (self.reputations[i] / server_round)))))))
+                    k = (self.reputations[i] + d) - (np.exp(-(1.0 - (d * (self.reputations[i] / server_round)))))
+                    r = min(1, max(0, k))
             self.reputations[i] = r
 
     def get_trust(self, normalized_distances):
         trusts = []
+        # d is set to 1 - normalized_dist as otherwise server will eventually discard all clients for some reason
         for i in range(len(self.reputations)):
-            d = 1 - normalized_distances[i]
+            d = 1- normalized_distances[i]
             trust = np.sqrt(self.reputations[i]**2 + d ** 2) - np.sqrt((1.0-self.reputations[i]) ** 2 + ((1.0-d) ** 2))
             trust = min(1, max(0, trust))
             trusts.append(trust)
@@ -170,14 +179,17 @@ class FedAvgEdit(FedAvg):
         # Do not aggregate if there are failures and failures are not accepted
         if not self.accept_failures and failures:
             return None, {}
-        aggregated_results = aggregate_inplace(results)
+
 
         weights_results = [
             (parameters_to_ndarrays(fit_res.parameters), fit_res.num_examples, client)
             for client, fit_res in results
         ]
+        # Before Here Exactly the same as regular FedAvg
+
         aggregated_ndarrays = self.get_Kmean_center(weights_results)
-        raveled_aggregated = ak.ravel(aggregated_ndarrays)
+        # raveled_aggregated = ak.ravel(aggregated_ndarrays)
+        raveled_aggregated = aggregated_ndarrays # Ravel is unnecessary as resultant is already a flattened 1d array
         print(raveled_aggregated)
 
         normalized_distances = self.get_normalized_distances(
@@ -187,7 +199,7 @@ class FedAvgEdit(FedAvg):
             normalized_distances, server_round)
         print("REPUTATION: ", self.reputations)
 
-        if server_round < 5:
+        if server_round < rounds_before_trust:
             aggregated_results = aggregate_inplace(results)
         else:
             indexes = []
@@ -196,7 +208,7 @@ class FedAvgEdit(FedAvg):
             print("TRUST: ", trust_values)
             trusted_clients = []
             for i in range(len(trust_values)):
-                if trust_values[i] > 0.2:
+                if trust_values[i] > beta:
                     trusted_clients.append(weights_results[i][:2])
                 else:
                     indexes.append(self.reputations[i])
@@ -218,7 +230,7 @@ class FedAvgEdit(FedAvg):
             log(WARNING, "No fit_metrics_aggregation_fn provided")
 
         return parameters_aggregated, metrics_aggregated
-
+# --------------- End FedAvgEdit ----------------------------------------------
 
 def weighted_average(metrics: List[Tuple[int, Metrics]]) -> Metrics:
     # Multiply accuracy of each client by number of examples used
